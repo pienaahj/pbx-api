@@ -7,6 +7,7 @@ type Tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// TokenResponse defines the response from a get_token request
 type TokenResponse struct {
 	Errcode                   int    `json:"errcode"`
 	Errmsg                    string `json:"errmsg"`

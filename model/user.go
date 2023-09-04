@@ -11,3 +11,9 @@ type User struct {
 	Password string    `db:"password" json:"-"`
 	Username string    `db:"username" json:"username"`
 }
+
+// UserCreds represents the log in credetials for a user
+type UserCreds struct {
+	Username string `db:"username" json:"username"`
+	Password string `db:"password" json:"password"`
+}
