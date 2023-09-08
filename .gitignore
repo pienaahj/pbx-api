@@ -396,3 +396,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+# Security sensitive information
+*.env
+*.env.dev
+*.pem
+# serviceAccount.json
+# serviceAccount.*
+# account/serviceAccount.json

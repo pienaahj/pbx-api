@@ -1,0 +1,9 @@
+ca key - ca.key
+ca certificate - ca.crt
+private key - pbx.key
+CSR(Certificate Signing Request) - pbx.csr
+signed certificate - pbx.crt
+PEM file - pbx.pem ( PBX certicicate + private key)
+
+
+Process:

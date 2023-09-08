@@ -1,5 +1,28 @@
 package model
 
+// event topics
+// event subscription
+type EventTopics struct {
+	TopicList []string `db:"topic_list" json:"topic_list"`
+}
+
+// event subscription response
+type SocketSubscriptionResponse struct {
+	ErrCode int    `db:"err_code" json:"err_code"`
+	ErrMsg  string `db:"err_msg" json:"err_msg"`
+}
+
+// (30008) Extension Call Status Changed
+type ExtCallStatus struct {
+	Extension string
+	Status    string
+}
+type CallStatusChanged struct {
+	Type int
+	SN   string
+	Msg  ExtCallStatus
+}
+
 type CallType struct {
 	Extension string `db:"extension" json:"extension"`
 }
