@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/pienaahj/pbx-api/api"
 	"github.com/pienaahj/pbx-api/model"
+	"golang.org/x/net/websocket"
 )
 
 var (
@@ -90,12 +89,13 @@ func main() {
 	validRefreshToken = token.RefreshToken
 	fmt.Println("valid token: ", validToken)
 	// initiate websocket events
-	fmt.Println("contacting websocket server...")
+	fmt.Println("upgrading network connection to websocket...")
 	conn, err := api.SubscribeToWebsocketService(ctx, validToken)
 	if err != nil {
 		fmt.Printf("Error creating websocket service %v\n", err)
+		return
 	}
-	fmt.Println("subscribed to websocket service")
+	fmt.Println("successfully subscribed to websocket service")
 	defer conn.Close()
 
 	interrupt := make(chan os.Signal, 1)
@@ -107,9 +107,11 @@ func main() {
 	fmt.Println("subscribing events to websocket service...")
 	err = api.SubscribeToEvents(ctx, conn, api.Topic_list)
 	if err != nil {
-		fmt.Println("Error subscribing to events")
+		fmt.Println("Error subscribing to events", err)
+		done <- struct{}{}
+		return
 	}
-	fmt.Println("subscribed to events")
+	fmt.Println("successfully subscribed to events")
 	//  make a test call
 	callReq := &model.CallRequest{
 		Caller:         "700",
@@ -117,12 +119,15 @@ func main() {
 		DialPermission: "2002",
 		AutoAnswer:     "yes",
 	}
+	fmt.Println("test call initiated...")
 	callResp, err := api.MakeCall(ctx, client, callReq, validToken)
 	if err != nil {
 		fmt.Printf("Error calling %s: %v\n", callReq.Callee, err)
 		return
 	}
 	fmt.Printf("Calling %v resulted in %s\n", callResp.CallID, callResp.Errmsg)
+
+	//
 	// go func() {
 	// 	defer close(done)
 	// 	for {
@@ -146,12 +151,17 @@ func main() {
 				msg  interface{}
 			}
 			var eventX []byte
+			var eventType int
 			eventX = <-message
-			err := json.Unmarshal(eventX, &event)
-			if err != nil {
-				fmt.Printf("error unmarshalling: %v", err)
+			fmt.Println("received event message from websocket service", string(eventX))
+			if eventX != nil {
+				err := json.Unmarshal(eventX, &event)
+				if err != nil {
+					fmt.Printf("error unmarshalling: %v", err)
+					eventType = 0
+				}
 			}
-			eventType := event.Type
+			eventType = event.Type
 			/*
 				(30008) Extension Call Status Changed	Indicate that the extension call status is changed, and return the current extension call status.
 				(30009) Extension Presence Status Changed	Indicate that the extension presence status is changed, and return the current extension presence status.
@@ -165,6 +175,7 @@ func main() {
 			switch eventType {
 			case 30008:
 				api.Handle30008(eventX)
+
 			case 30009:
 				api.Handle30009(eventX)
 			case 300011:
@@ -179,9 +190,32 @@ func main() {
 				api.Handle30015(eventX)
 			case 30016:
 				api.Handle30016(eventX)
+			case 30005:
+				api.HandleNotImplemented(eventX)
+			case 30006:
+				api.HandleNotImplemented(eventX)
+			case 30007:
+				api.HandleNotImplemented(eventX)
+			case 30010:
+				api.HandleNotImplemented(eventX)
+			case 30017:
+				api.HandleNotImplemented(eventX)
+			case 30018:
+				api.HandleNotImplemented(eventX)
+			case 30019:
+				api.HandleNotImplemented(eventX)
+			case 30020:
+				api.HandleNotImplemented(eventX)
+			case 30022:
+				api.HandleNotImplemented(eventX)
+			case 30023:
+				api.HandleNotImplemented(eventX)
+			case 30024:
+				api.HandleNotImplemented(eventX)
+			case 0:
+				fallthrough
 			default:
-				fmt.Println("No event type recived, returning...")
-				return
+				// fmt.Println("No event type received, waiting...")
 			}
 		case <-interrupt:
 			fmt.Println("Caught interrupt signal - quitting!")
@@ -211,16 +245,21 @@ func main() {
 }
 
 // HandleSocketResponse listens to the responses on the socket and sends it back on the massage channel
-func HandleSocketResponse(ctx context.Context, done chan struct{}, message chan []byte, conn *net.TCPConn) {
+func HandleSocketResponse(ctx context.Context, done chan struct{}, message chan []byte, conn *websocket.Conn) {
 	defer close(done)
-	var msg bytes.Buffer
-	for {
-		_, err := conn.Read(msg.Bytes())
-		if err != nil {
-			fmt.Printf("error reading buffer from websocket service: %v", err)
+
+	select {
+	case <-done:
+		return
+	default:
+		for {
+			var data []byte
+			websocket.Message.Receive(conn, &data)
+			if len(data) > 0 {
+				fmt.Printf("received message from websocket service: %v\n", string(data))
+				message <- data
+			}
 		}
-		fmt.Printf("received message from websocket service: %v\n", msg.String())
-		message <- msg.Bytes()
 	}
 }
 

@@ -3,22 +3,24 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
+	"net/url"
 
 	"github.com/pienaahj/pbx-api/model"
+	"golang.org/x/net/websocket"
 )
 
 const (
 	https_port string = "8088"
 	http_port  string = "80"
 	//ip address of the PBX server
-	pbx_ip       string = "192.168.5.100"
+	pbx_ip       string = "105.246.230.190"
 	Api_path     string = "/openapi/v1.0/"
 	Content_type string = "application/json"
-	ServerAddr   string = "192.168.5.100"
+	ServerAddr   string = "105.246.230.190"
 	Persist      string = "heartbeat"
 	SerialNumber string = "3633D2199067"
 )
@@ -45,7 +47,7 @@ var (
 	access_token           string
 	refresh_token          string
 	Topic_list             = model.EventTopics{
-		TopicList: []string{"3008", "3009", "30011", "30012", "30013", "30014", "30015", "30016"},
+		TopicList: []int{30008, 30009, 30011, 30012, 30013, 30014, 30015, 30016},
 	}
 )
 
@@ -158,40 +160,73 @@ func GetRefreshToken(ctx context.Context, client *http.Client, refreshToken stri
 }
 
 // SubscribeToWebsocketService subscribe to the websocket service
-func SubscribeToWebsocketService(ctx context.Context, token string) (*net.TCPConn, error) {
-	url := BaseURLSecureWebsocket + Api_path + "subscribe?access_token=" + token
-	fmt.Println("websocket url: ", url)
-	// req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
-	// if err != nil {
-	// 	fmt.Println("Error creating the request: ", err)
-	// 	return nil, fmt.Errorf("Error creating the request: %v", err)
-	// }
-	// // set the content type on the header
-	// req.Header.Set("Content-Type", "application/json")
 
-	// resp, err := client.Do(req)
-	// if err != nil {
-	// 	fmt.Println("Error recieving response: ", err)
-	// 	return nil, fmt.Errorf("Error recieving responset: %v", err)
-	// }
-	// defer resp.Body.Close()
-	// websocket implementation to monitor events
-	// init
-	tcpAddr, err := net.ResolveTCPAddr("tcp", url)
+func SubscribeToWebsocketService(ctx context.Context, token string) (*websocket.Conn, error) {
+	serverUrl := BaseURLSecureWebsocket + Api_path + "subscribe?access_token=" + token
+	originUrl := "https://192.168.0.143/"
+	fmt.Println("server url: ", serverUrl)
+	originURL, err := url.Parse(originUrl)
+	fmt.Println("origin url: ", originURL)
 	if err != nil {
-		fmt.Printf("Error resolving websocket server connection: %v\n", url)
+		fmt.Printf("Error parsing websocket origin url: %v\n", originUrl)
+		return nil, err
 	}
-	// get a websocket connection
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	serverURL, err := url.Parse(serverUrl)
 	if err != nil {
-		fmt.Printf("Error dialing websocket server connection: %v\n", url)
+		fmt.Printf("Error parsing websocket server url: %v\n", serverUrl)
+		return nil, err
+	}
+	// VerifyConnection can be used to replace and customize connection
+	// verification. This example shows a VerifyConnection implementation that
+	// will be approximately equivalent to what crypto/tls does normally to
+	// verify the peer's certificate.
+
+	// Client side configuration.
+	tlsConfig := &tls.Config{
+		// Set InsecureSkipVerify to skip the default validation we are
+		// replacing. This will not disable VerifyConnection.
+		InsecureSkipVerify: true,
+		// VerifyConnection: func(cs tls.ConnectionState) error {
+		// 	opts := x509.VerifyOptions{
+		// 		DNSName:       cs.ServerName,
+		// 		Intermediates: x509.NewCertPool(),
+		// 	}
+		// 	for _, cert := range cs.PeerCertificates[1:] {
+		// 		opts.Intermediates.AddCert(cert)
+		// 	}
+		// 	_, err := cs.PeerCertificates[0].Verify(opts)
+		// 	return err
+		// },
+	}
+
+	// Note that when certificates are not handled by the default verifier
+	// ConnectionState.VerifiedChains will be nil.
+	serverURL.Scheme = "https"
+	// construct the websocket config
+	myConfig, err := websocket.NewConfig(serverUrl, originUrl)
+	if err != nil {
+		fmt.Printf("Error creating new config: %v\n", err)
+	}
+	myConfig.TlsConfig = tlsConfig
+
+	conn, err := websocket.DialConfig(myConfig)
+	if err != nil {
+		fmt.Printf("Error dialing websocket server connection: %v\n", err)
 		return nil, fmt.Errorf("Error dialing websocket server connection: %v", err)
 	}
 	// persist the connection
 	_, err = conn.Write([]byte("heartbeat"))
 	if err != nil {
-		return conn, fmt.Errorf("Error pesisting socket connection: %v", err)
+		return conn, fmt.Errorf("Error persisting socket connection: %v", err)
 	}
+	var data []byte
+
+	err = websocket.Message.Receive(conn, &data)
+	if err != nil {
+		return conn, fmt.Errorf("Cannot read from buffer: %v", err)
+	}
+	fmt.Println("Data received: ", string(data))
+	fmt.Println("Connection established and persisted successfully")
 	// err = json.NewDecoder(resp.Body).Decode(&callResponse)
 	// if err != nil {
 	// 	fmt.Println("Error decoding json response body: ", err)
@@ -206,26 +241,30 @@ func SubscribeToWebsocketService(ctx context.Context, token string) (*net.TCPCon
 }
 
 // SubscribeToEvents subscribe to the websocket service
-func SubscribeToEvents(ctx context.Context, conn *net.TCPConn, events model.EventTopics) error {
-	eventsString, err := json.Marshal(events)
+func SubscribeToEvents(ctx context.Context, conn *websocket.Conn, events model.EventTopics) error {
+	eventsData, err := json.Marshal(events)
 	if err != nil {
 		return fmt.Errorf("Cannot marshal events: %v", err)
 	}
-	_, err = conn.Write(eventsString)
+	_, err = conn.Write(eventsData)
 	if err != nil {
 		return fmt.Errorf("Cannot write events: %v", err)
 	}
-	var buf []byte
+	var data []byte
 	var resp model.SocketSubscriptionResponse
-	_, err = conn.Read(buf)
+	err = websocket.Message.Receive(conn, &data)
 	if err != nil {
 		return fmt.Errorf("Cannot read from buffer: %v", err)
 	}
-	err = json.Unmarshal(buf, &resp)
+	fmt.Println("Data received: ", string(data))
+	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return fmt.Errorf("Cannot unmarshal from buffer: %v", err)
 	}
-
+	if resp.ErrCode != 0 {
+		fmt.Printf("Response received: %v\n", resp)
+		return fmt.Errorf("Could not subscribe to events: %v", resp.ErrMsg)
+	}
 	return nil
 }
 
@@ -382,4 +421,9 @@ func Handle30015(event []byte) {
 // Handle30016(event)
 func Handle30016(event []byte) {
 	fmt.Println("Handling event30016")
+}
+
+// HandleNotImplemented(event)
+func HandleNotImplemented(event []byte) {
+	fmt.Println("Handling NotImplemented")
 }
