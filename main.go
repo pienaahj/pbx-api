@@ -6,12 +6,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/golang-jwt/jwt"
 	"github.com/pienaahj/pbx-api/api"
 	"github.com/pienaahj/pbx-api/model"
@@ -83,7 +83,7 @@ func main() {
 	fmt.Println()
 
 	// wait for the token
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 	// assign the tokens
 	validToken = token.AccessToken
 	validRefreshToken = token.RefreshToken
@@ -143,7 +143,8 @@ func main() {
 		select {
 		case <-done:
 			return
-		case <-message:
+		case msg := <-message:
+			fmt.Println("message case invoked")
 			// determine the event type
 			var event struct {
 				Type int    `json:"type"`
@@ -152,8 +153,8 @@ func main() {
 			}
 			var eventX []byte
 			var eventType int
-			eventX = <-message
-			fmt.Println("received event message from websocket service", string(eventX))
+			eventX = msg
+			fmt.Println("received event message from goroutine", string(eventX))
 			if eventX != nil {
 				err := json.Unmarshal(eventX, &event)
 				if err != nil {
@@ -215,7 +216,7 @@ func main() {
 			case 0:
 				fallthrough
 			default:
-				// fmt.Println("No event type received, waiting...")
+				fmt.Println("No event type received, waiting...")
 			}
 		case <-interrupt:
 			fmt.Println("Caught interrupt signal - quitting!")
@@ -247,35 +248,20 @@ func main() {
 // HandleSocketResponse listens to the responses on the socket and sends it back on the massage channel
 func HandleSocketResponse(ctx context.Context, done chan struct{}, message chan []byte, conn *websocket.Conn) {
 	defer close(done)
-
 	select {
 	case <-done:
+		fmt.Println("Done...returning from HandleSocketResponse")
 		return
 	default:
 		for {
 			var data []byte
 			websocket.Message.Receive(conn, &data)
 			if len(data) > 0 {
-				fmt.Printf("received message from websocket service: %v\n", string(data))
+				spew.Printf("received message from websocket service: %v\n", string(data))
 				message <- data
 			}
 		}
 	}
-}
-
-func httpsClient(url string) []byte {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	resp, err := client.Get(url)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-	fmt.Println("Response status:", resp.Status)
-	msg, _ := io.ReadAll(resp.Body)
-	return msg
 }
 
 // LoadKeys loads the rsa keys from environment variables

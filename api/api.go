@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"log"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pienaahj/pbx-api/model"
 	"golang.org/x/net/websocket"
 )
@@ -212,18 +215,18 @@ func SubscribeToWebsocketService(ctx context.Context, token string) (*websocket.
 	conn, err := websocket.DialConfig(myConfig)
 	if err != nil {
 		fmt.Printf("Error dialing websocket server connection: %v\n", err)
-		return nil, fmt.Errorf("Error dialing websocket server connection: %v", err)
+		return nil, fmt.Errorf("error dialing websocket server connection: %v", err)
 	}
 	// persist the connection
 	_, err = conn.Write([]byte("heartbeat"))
 	if err != nil {
-		return conn, fmt.Errorf("Error persisting socket connection: %v", err)
+		return conn, fmt.Errorf("error persisting socket connection: %v", err)
 	}
 	var data []byte
 
 	err = websocket.Message.Receive(conn, &data)
 	if err != nil {
-		return conn, fmt.Errorf("Cannot read from buffer: %v", err)
+		return conn, fmt.Errorf("cannot read from buffer: %v", err)
 	}
 	fmt.Println("Data received: ", string(data))
 	fmt.Println("Connection established and persisted successfully")
@@ -244,26 +247,26 @@ func SubscribeToWebsocketService(ctx context.Context, token string) (*websocket.
 func SubscribeToEvents(ctx context.Context, conn *websocket.Conn, events model.EventTopics) error {
 	eventsData, err := json.Marshal(events)
 	if err != nil {
-		return fmt.Errorf("Cannot marshal events: %v", err)
+		return fmt.Errorf("cannot marshal events: %v", err)
 	}
 	_, err = conn.Write(eventsData)
 	if err != nil {
-		return fmt.Errorf("Cannot write events: %v", err)
+		return fmt.Errorf("cannot write events: %v", err)
 	}
 	var data []byte
 	var resp model.SocketSubscriptionResponse
 	err = websocket.Message.Receive(conn, &data)
 	if err != nil {
-		return fmt.Errorf("Cannot read from buffer: %v", err)
+		return fmt.Errorf("cannot read from buffer: %v", err)
 	}
 	fmt.Println("Data received: ", string(data))
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
-		return fmt.Errorf("Cannot unmarshal from buffer: %v", err)
+		return fmt.Errorf("cannot unmarshal from buffer: %v", err)
 	}
 	if resp.ErrCode != 0 {
 		fmt.Printf("Response received: %v\n", resp)
-		return fmt.Errorf("Could not subscribe to events: %v", resp.ErrMsg)
+		return fmt.Errorf("could not subscribe to events: %v", resp.ErrMsg)
 	}
 	return nil
 }
@@ -414,8 +417,95 @@ func Handle30014(event []byte) {
 }
 
 // Handle30015(event)
-func Handle30015(event []byte) {
+func Handle30015(event []byte) (*model.CallFailedReport, error) {
 	fmt.Println("Handling event30015")
+	var (
+		callFailedReport      = new(model.CallFailedReport)
+		callFailCallInfo      = new(model.CallFailCallInfo)
+		callFailMemebersEmbed = new(model.CallFailMemebers)
+		callFailExtention     = new(model.CallFailExtensionInfo)
+		callFailInboundInfo   = new(model.CallFailInboundInfo)
+		callFailOutboundInfo  = new(model.CallFailOutboundInfo)
+	)
+
+	var resp struct {
+		Type int    `db:"type" json:"type"`
+		SN   string `db:"sn" json:"sn"`
+		Msg  string `db:"msg" json:"msg"` // doesn't recognise embeded struct
+	}
+
+	// json.RawMessage
+	err := json.Unmarshal(event, &resp)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event30015: %v\n", err)
+		return callFailedReport, err
+	}
+	// spew.Dump("Resp: ", resp)
+	dataString := resp.Msg
+	data := []byte(dataString)
+	var messageStruct struct {
+		CallID  string `db:"call_id" json:"call_id"`
+		Reason  string `db:"reason," json:"reason"`
+		Members string `db:"members,omitempty" json:"members,omitempty"`
+	}
+	err = json.Unmarshal(data, &messageStruct)
+	if err != nil {
+		log.Printf("Cannot unmarshal from msg: %v\n", err)
+		return callFailedReport, err
+	}
+	// spew.Dump("Msg: ", messageStruct)
+	membersString := messageStruct.Members
+
+	switch membersString {
+	case "":
+		callFailCallInfo.CallID = messageStruct.CallID
+		callFailCallInfo.Reason = messageStruct.Reason
+		callFailCallInfo.Members = model.CallFailMemebers{}
+		callFailedReport.Type = resp.Type
+		callFailedReport.SN = resp.SN
+		callFailedReport.Msg = *callFailCallInfo
+		spew.Dump(callFailedReport)
+		fmt.Println("No memebers found, returning...")
+		return callFailedReport, err
+	default:
+		membersData := []byte(membersString)
+		callFailMemebers := struct {
+			Extention string `db:"extention" json:"extention"`
+			Inbound   string `db:"inbound" json:"inbound"`
+			Outbound  string `db:"outbound" json:"outbound"`
+		}{}
+		err = json.Unmarshal(membersData, &callFailMemebers)
+		if err != nil {
+			log.Printf("Cannot unmarshal from membersData: %v\n", err)
+			return callFailedReport, fmt.Errorf("cannot unmarshal from membersData: %v", err)
+		}
+		spew.Printf("decoded members: %v of type %T", callFailMemebers)
+		// handle Extention
+		err = json.Unmarshal([]byte(callFailMemebers.Extention), &callFailExtention)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Extention: %v\n", err)
+			return callFailedReport, fmt.Errorf("cannot unmarshal from Extention: %v", err)
+		}
+		callFailMemebersEmbed.Extention = *callFailExtention
+		// handle Inbound
+		err = json.Unmarshal([]byte(callFailMemebers.Inbound), &callFailInboundInfo)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Inbound: %v\n", err)
+			return callFailedReport, fmt.Errorf("cannot unmarshal from Inbound: %v", err)
+		}
+		callFailMemebersEmbed.Inbound = *callFailInboundInfo
+		// handle Outbound
+		err = json.Unmarshal([]byte(callFailMemebers.Outbound), &callFailOutboundInfo)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Outbound: %v\n", err)
+			return callFailedReport, fmt.Errorf("cannot unmarshal from Outbound: %v", err)
+		}
+		callFailMemebersEmbed.Outbound = *callFailOutboundInfo
+	}
+	// assign the report values
+	callFailCallInfo.Members = *callFailMemebersEmbed
+	fmt.Printf("Call failed report: %v\n", callFailedReport)
+	return callFailedReport, nil
 }
 
 // Handle30016(event)

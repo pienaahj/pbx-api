@@ -230,13 +230,39 @@ type CallFailMemebers struct {
 }
 type CallFailCallInfo struct {
 	CallID  string           `db:"call_id" json:"call_id"`
-	Reason  string           `db:"reason" json:"reason"`
-	Members CallFailMemebers `db:"members" json:"members"`
+	Reason  string           `db:"reason," json:"reason"`
+	Members CallFailMemebers `db:"members,omitempty" json:"members,omitempty"`
 }
+
 type CallFailedReport struct {
 	Type int              `db:"type" json:"type"`
 	SN   string           `db:"sn" json:"sn"`
 	Msg  CallFailCallInfo `db:"msg" json:"msg"`
+}
+
+var CallFailMemberStatuses = map[string]string{
+	"ALERT":    "The caller who initiate the call is in the ringback state.",
+	"RING":     "The callee is in the ringing state.",
+	"ANSWERED": "The call initiated by the caller has been answered.",
+	"ANSWER":   "The callee has answered the call, and is in the talking state.",
+	"HOLD":     "The call is held.",
+	"BYE":      "The call is hung up.",
+}
+
+var CallFailReasons = map[string]string{
+	"NO Dial Permission":          "The extension/organization has no dial permission.",
+	"NO Outbound Restrictin":      "The extension has no outbound call permission.",
+	"Circuit/channel congestion":  "Engaged. The channel is in use.",
+	"DND":                         "The callee enabled DND.",
+	"Line Unreachable":            "The external line is unreachable.",
+	"User Busy":                   "The callee declined the call.",
+	"410 Gone":                    "Away.",
+	"404 NOT found":               "The callee number is not found.",
+	"408 Request Time":            "The call is not answered or the callee powers off.",
+	"480 Temporatily Unavailable": "The call is not answered.",
+	"484 Address incomplete":      "Incorrect format of callee number.",
+	"486 Busy here":               "The callee is busy in a call.",
+	"603 Declined":                "The call is timed out.",
 }
 
 // (30016) Inbound Call Invitation
