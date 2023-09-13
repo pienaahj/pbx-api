@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	creds             *model.RequestParams
-	user              *model.User
+	// creds             *model.RequestParams
+	// user              *model.User
 	clientId          string = "JZQulsaolLgZfLLD8SDztJwFn5jlAXWM"
 	clientSecrect     string = "ESziOACmxqsHb1SuXcbsBj36rfVdLUU7"
 	validToken        string
@@ -57,7 +57,7 @@ func main() {
 		Username: clientId,
 		Password: clientSecrect,
 	}
-
+	// MarshalJSONTest()
 	fmt.Println("Connecting to server: ...")
 
 	// websocket implementation to monitor events
@@ -144,7 +144,6 @@ func main() {
 		case <-done:
 			return
 		case msg := <-message:
-			fmt.Println("message case invoked")
 			// determine the event type
 			var event struct {
 				Type int    `json:"type"`
@@ -154,7 +153,7 @@ func main() {
 			var eventX []byte
 			var eventType int
 			eventX = msg
-			fmt.Println("received event message from goroutine", string(eventX))
+			// fmt.Println("received event message from goroutine", string(eventX))
 			if eventX != nil {
 				err := json.Unmarshal(eventX, &event)
 				if err != nil {
@@ -175,20 +174,19 @@ func main() {
 			*/
 			switch eventType {
 			case 30008:
-				api.Handle30008(eventX)
-
+				go api.Handle30008(eventX)
 			case 30009:
 				api.Handle30009(eventX)
-			case 300011:
-				api.Handle30011(eventX)
+			case 30011:
+				go api.Handle30011(eventX)
 			case 30012:
-				api.Handle30012(eventX)
+				go api.Handle30012(eventX)
 			case 30013:
 				api.Handle30013(eventX)
 			case 30014:
 				api.Handle30014(eventX)
 			case 30015:
-				api.Handle30015(eventX)
+				go api.Handle30015(eventX)
 			case 30016:
 				api.Handle30016(eventX)
 			case 30005:
@@ -298,4 +296,22 @@ func LoadKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	}
 	fmt.Println("Public Key: ", pubKey)
 	return privKey, pubKey, nil
+}
+
+// test json marshalling
+func MarshalJSONTest() {
+	newTest := &model.ExtentionCallStatusChanged{
+		Type: 1234,
+		SN:   "testSN",
+		Msg: model.ExtCallStatus{
+			Extension: "test extention",
+			Status:    "testing",
+		},
+	}
+	json, err := json.Marshal(newTest)
+	if err != nil {
+		fmt.Println("Error marshalling test: ", err)
+	}
+	spew.Dump(json)
+
 }

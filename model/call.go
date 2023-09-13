@@ -1,6 +1,28 @@
 package model
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/davecgh/go-spew/spew"
+)
+
 // event topics
+type Event struct {
+	Event30008 ExtCallStatus
+	Event30009 ExtensionPresenceStatusChanged
+	Event30011 TrunkRegistrationStatusChanged
+	Event30012 CallStatusChanged
+	Event30014 CDR
+	Event30015 CallForwardReport
+	Event30016 CallFailedReport
+}
+type EventHandler interface {
+	Handle()
+}
+
 // event subscription
 //
 
@@ -41,7 +63,7 @@ type SocketSubscriptionResponse struct {
 
 // (30008) Extension Call Status Changed
 type ExtCallStatus struct {
-	Extension string `db:"extention" json:"extention"`
+	Extension string `db:"extension" json:"extension"`
 	Status    string `db:"status" json:"status"`
 }
 
@@ -49,6 +71,22 @@ type ExtentionCallStatusChanged struct {
 	Type int           `db:"type" json:"type"`
 	SN   string        `db:"sn" json:"sn"`
 	Msg  ExtCallStatus `db:"msg" json:"msg"`
+}
+
+// Handle30008(event) extention call status changed
+func (e *ExtentionCallStatusChanged) Handle(event []byte) {
+	fmt.Println("Handling event30008")
+	//{"type":30015,"sn":"3633D2199067","msg":"{\"call_id\":\"1694606403.000055\",\"reason\":\"NOT found\",\"members\":null}"}
+	var extentionCallStatusChanged = new(ExtentionCallStatusChanged)
+	trueResp := Sanitize(event)
+	err := json.Unmarshal(trueResp, &extentionCallStatusChanged)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event3008: %v\n", err)
+		return
+	}
+	// spew.Dump("extentionCallStatusChanged: ", extentionCallStatusChanged)
+
+	fmt.Printf("Call extention status change report: %v\n", extentionCallStatusChanged)
 }
 
 // (30009) Extension Presence Status Changed
@@ -110,19 +148,44 @@ type CallStatusExtensionInfo struct {
 	MemberStatus string `db:"member_status" json:"member_status"`
 	CallPath     string `db:"call_path" json:"call_path"`
 }
-type CallStatusMemebers struct {
-	Extention CallStatusExtensionInfo `db:"extention" json:"extention"`
+type CallStatusMembers struct {
+	Extention CallStatusExtensionInfo `db:"extension" json:"extension"`
 	Inbound   CallStatusInboundInfo   `db:"inbound" json:"inbound"`
 	Outbound  CallStatusOutboundInfo  `db:"outbound" json:"outbound"`
 }
 type CallStatusCallInfo struct {
-	CallID  string           `db:"call_id" json:"call_id"`
-	Members CallFailMemebers `db:"members" json:"members"`
+	CallID  string              `db:"call_id" json:"call_id"`
+	Members []CallStatusMembers `db:"members" json:"members"`
 }
 type CallStatusChanged struct {
 	Type int                `db:"type" json:"type"`
 	SN   string             `db:"sn" json:"sn"`
 	Msg  CallStatusCallInfo `db:"msg" json:"msg"`
+}
+
+// Handle30011(event) call status changed
+func (e *CallStatusChanged) Handle(event []byte) {
+	fmt.Println("Handling event30011")
+	/* "type":30011,
+	"sn":"3633D2199067",
+	"msg":"{\"call_id\":\"1694612246.86\",
+	\"members\":
+	[{\"extension\":{\"number\":\"700\",
+		\"channel_id\":\"PJSIP/700-00000023\",
+		\"member_status\":\"BYE\",
+		\"call_path\":\"\"}}
+	]}
+	"}
+	*/
+	var callStatusChanged = new(CallStatusChanged)
+	trueResp := Sanitize(event)
+	err := json.Unmarshal(trueResp, &callStatusChanged)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event30011: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Call extention status change report: %v\n", callStatusChanged)
 }
 
 // (30012) New CDR
@@ -165,8 +228,8 @@ type CallTransferResponse struct {
 
 // (30014) Call Forward
 type CallForwardCallInfo struct {
-	CallID  string           `db:"call_id" json:"call_id"`
-	Members CallFailMemebers `db:"members" json:"members"`
+	CallID  string          `db:"call_id" json:"call_id"`
+	Members CallFailMembers `db:"members" json:"members"`
 }
 type CallForwardReport struct {
 	SN  string              `db:"sn" json:"sn"`
@@ -194,7 +257,7 @@ type CallForwardExtensionInfo struct {
 	MemberStatus string `db:"member_status" json:"member_status"`
 	CallPath     string `db:"call_path" json:"call_path"`
 }
-type CallForwardMemebers struct {
+type CallForwardMembers struct {
 	Extention CallFailExtensionInfo `db:"extention" json:"extention"`
 	Inbound   CallFailInboundInfo   `db:"inbound" json:"inbound"`
 	Outbound  CallFailOutboundInfo  `db:"outbound" json:"outbound"`
@@ -223,15 +286,15 @@ type CallFailExtensionInfo struct {
 	MemberStatus string `db:"member_status" json:"member_status"`
 	CallPath     string `db:"call_path" json:"call_path"`
 }
-type CallFailMemebers struct {
+type CallFailMembers struct {
 	Extention CallFailExtensionInfo `db:"extention" json:"extention"`
 	Inbound   CallFailInboundInfo   `db:"inbound" json:"inbound"`
 	Outbound  CallFailOutboundInfo  `db:"outbound" json:"outbound"`
 }
 type CallFailCallInfo struct {
-	CallID  string           `db:"call_id" json:"call_id"`
-	Reason  string           `db:"reason," json:"reason"`
-	Members CallFailMemebers `db:"members,omitempty" json:"members,omitempty"`
+	CallID  string          `db:"call_id" json:"call_id"`
+	Reason  string          `db:"reason," json:"reason"`
+	Members CallFailMembers `db:"members,omitempty" json:"members,omitempty"`
 }
 
 type CallFailedReport struct {
@@ -265,6 +328,96 @@ var CallFailReasons = map[string]string{
 	"603 Declined":                "The call is timed out.",
 }
 
+// Handle30015(event) call failed
+func (e *CallFailedReport) Handle(event []byte) {
+	fmt.Println("Handling event30015")
+	var (
+		callFailedReport      = new(CallFailedReport)
+		callFailCallInfo      = new(CallFailCallInfo)
+		callFailMemebersEmbed = new(CallFailMembers)
+		callFailExtention     = new(CallFailExtensionInfo)
+		callFailInboundInfo   = new(CallFailInboundInfo)
+		callFailOutboundInfo  = new(CallFailOutboundInfo)
+	)
+
+	var resp struct {
+		Type int    `db:"type" json:"type"`
+		SN   string `db:"sn" json:"sn"`
+		Msg  string `db:"msg" json:"msg"` // doesn't recognise embeded struct
+	}
+
+	// json.RawMessage
+	err := json.Unmarshal(event, &resp)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event30015: %v\n", err)
+		return
+	}
+	// spew.Dump("Resp: ", resp)
+	dataString := resp.Msg
+	data := []byte(dataString)
+	var messageStruct struct {
+		CallID  string `db:"call_id" json:"call_id"`
+		Reason  string `db:"reason," json:"reason"`
+		Members string `db:"members,omitempty" json:"members,omitempty"`
+	}
+	err = json.Unmarshal(data, &messageStruct)
+	if err != nil {
+		log.Printf("Cannot unmarshal from msg: %v\n", err)
+		return
+	}
+	// spew.Dump("Msg: ", messageStruct)
+	membersString := messageStruct.Members
+
+	switch membersString {
+	case "":
+		callFailCallInfo.CallID = messageStruct.CallID
+		callFailCallInfo.Reason = messageStruct.Reason
+		callFailCallInfo.Members = CallFailMembers{}
+		callFailedReport.Type = resp.Type
+		callFailedReport.SN = resp.SN
+		callFailedReport.Msg = *callFailCallInfo
+		spew.Dump(callFailedReport)
+		fmt.Println("No memebers found, returning...")
+		return
+	default:
+		membersData := []byte(membersString)
+		callFailMemebers := struct {
+			Extention string `db:"extention" json:"extention"`
+			Inbound   string `db:"inbound" json:"inbound"`
+			Outbound  string `db:"outbound" json:"outbound"`
+		}{}
+		err = json.Unmarshal(membersData, &callFailMemebers)
+		if err != nil {
+			log.Printf("Cannot unmarshal from membersData: %v\n", err)
+			return
+		}
+		spew.Printf("decoded members: %v of type %T", callFailMemebers)
+		// handle Extention
+		err = json.Unmarshal([]byte(callFailMemebers.Extention), &callFailExtention)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Extention: %v\n", err)
+			return
+		}
+		callFailMemebersEmbed.Extention = *callFailExtention
+		// handle Inbound
+		err = json.Unmarshal([]byte(callFailMemebers.Inbound), &callFailInboundInfo)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Inbound: %v\n", err)
+			return
+		}
+		callFailMemebersEmbed.Inbound = *callFailInboundInfo
+		// handle Outbound
+		err = json.Unmarshal([]byte(callFailMemebers.Outbound), &callFailOutboundInfo)
+		if err != nil {
+			log.Printf("Cannot unmarshal from Outbound: %v\n", err)
+			return
+		}
+		callFailMemebersEmbed.Outbound = *callFailOutboundInfo
+	}
+	// assign the report values
+	callFailCallInfo.Members = *callFailMemebersEmbed
+}
+
 // (30016) Inbound Call Invitation
 type InboundCallInvitationCallInfoMemebers struct {
 	From         string `db:"from" json:"from"`
@@ -282,4 +435,21 @@ type InboundCallInvitation struct {
 	Type int                           `db:"type" json:"type"`
 	SN   string                        `db:"sn" json:"sn"`
 	Msg  InboundCallInvitationCallInfo `db:"msg" json:"msg"`
+}
+
+// sanitize() takes the quotes out of a event response
+func Sanitize(event []byte) []byte {
+	// "msg":"
+	beginBefore := []byte(`"msg":"`)
+	beginEnd := []byte(`"msg":`)
+	// }"}
+	endBefore := []byte(`}"}`)
+	endEnd := []byte(`}}`)
+	slash := []byte(`\`)
+	squat := []byte("")
+	newEvent := bytes.Replace(event, beginBefore, beginEnd, 1)
+	newEvent = bytes.Replace(newEvent, endBefore, endEnd, 1)
+	newEvent = bytes.Replace(newEvent, slash, squat, -1)
+	// spew.Dump("sanitized event", newEvent)
+	return newEvent
 }
