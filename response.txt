@@ -1,0 +1,40 @@
+eceived message from websocket service: {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Idle\"}"}
+received message from websocket service: {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ALERT\",\"call_path\":\"\"}},{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000016\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+received message from websocket service: {"type":30014,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ALERT\",\"call_path\":\"\"}},{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000016\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+message case invoked
+received event message from goroutine {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Idle\"}"}
+Handling event30008
+message case invoked
+received event message from goroutine {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ALERT\",\"call_path\":\"\"}},{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000016\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+No event type received, waiting...
+message case invoked
+received event message from goroutine {"type":30014,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ALERT\",\"call_path\":\"\"}},{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000016\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+Handling event30014
+received message from websocket service: {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ANSWERED\",\"call_path\":\"\"}}]}"}
+received message from websocket service: {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Busy\"}"}
+message case invoked
+received event message from goroutine {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"ANSWERED\",\"call_path\":\"\"}}]}"}
+No event type received, waiting...
+message case invoked
+received event message from goroutine {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Busy\"}"}
+Handling event30008
+received message from websocket service: {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:02:22\",\"call_from\":\"700\",\"call_to\":\"0813539441\",\"call_duration\":0,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"FAILED\",\"type\":\"Outbound\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+message case invoked
+received event message from goroutine {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:02:22\",\"call_from\":\"700\",\"call_to\":\"0813539441\",\"call_duration\":0,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"FAILED\",\"type\":\"Outbound\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+Handling event30012
+received message from websocket service: {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Idle\"}"}
+message case invoked
+received event message from goroutine {"type":30008,"sn":"3633D2199067","msg":"{\"extension\":\"700\",\"status\":\"Idle\"}"}
+Handling event30008
+received message from websocket service: {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:01:48\",\"call_from\":\"700\",\"call_to\":\"700\",\"call_duration\":30,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"NO ANSWER\",\"type\":\"Internal\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+message case invoked
+received event message from goroutine {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:01:48\",\"call_from\":\"700\",\"call_to\":\"700\",\"call_duration\":30,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"NO ANSWER\",\"type\":\"Internal\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+Handling event30012
+received message from websocket service: {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+message case invoked
+received event message from goroutine {"type":30011,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"members\":[{\"extension\":{\"number\":\"700\",\"channel_id\":\"PJSIP/700-00000015\",\"member_status\":\"BYE\",\"call_path\":\"\"}}]}"}
+No event type received, waiting...
+received message from websocket service: {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:02:25\",\"call_from\":\"700\",\"call_to\":\"700\",\"call_duration\":0,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"ANSWERED\",\"type\":\"Internal\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+message case invoked
+received event message from goroutine {"type":30012,"sn":"3633D2199067","msg":"{\"call_id\":\"1694541708.49\",\"time_start\":\"2023-09-12 20:02:25\",\"call_from\":\"700\",\"call_to\":\"700\",\"call_duration\":0,\"talk_duration\":0,\"src_trunk_name\":\"\",\"dst_trunk_name\":\"\",\"pin_code\":\"\",\"status\":\"ANSWERED\",\"type\":\"Internal\",\"recording\":\"\",\"did_number\":\"\",\"agent_ring_time\":0}"}
+Handling event30012

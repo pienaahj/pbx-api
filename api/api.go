@@ -387,8 +387,42 @@ func TransferCall(ctx context.Context, client *http.Client, call *model.CallRequ
 
 // event repsonses
 // Handle30008(event)
-func Handle30008(event []byte) {
+func Handle30008(event []byte) (*model.ExtCallStatus, error) {
 	fmt.Println("Handling event30008")
+	var (
+		extCallStatus              = new(model.ExtCallStatus)
+		extentionCallStatusChanged = new(model.ExtentionCallStatusChanged)
+	)
+	var resp struct {
+		Type int    `db:"type" json:"type"`
+		SN   string `db:"sn" json:"sn"`
+		Msg  string `db:"msg" json:"msg"` // doesn't recognise embeded struct
+	}
+	err := json.Unmarshal(event, &resp)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event30015: %v\n", err)
+		return extCallStatus, err
+	}
+	// spew.Dump("Resp: ", resp)
+	dataString := resp.Msg
+	data := []byte(dataString)
+	var messageStruct struct {
+		Extension string `db:"extention" json:"extention"`
+		Status    string `db:"status" json:"status"`
+	}
+	err = json.Unmarshal(data, &messageStruct)
+	if err != nil {
+		log.Printf("Cannot unmarshal from msg: %v\n", err)
+		return extCallStatus, err
+	}
+	// spew.Dump("Msg: ", messageStruct)
+	extCallStatus.Extension = messageStruct.Extension
+	extCallStatus.Status = messageStruct.Status
+	extentionCallStatusChanged.Type = resp.Type
+	extentionCallStatusChanged.SN = resp.SN
+	extentionCallStatusChanged.Msg = *extCallStatus
+	fmt.Printf("Call failed report: %v\n", extCallStatus)
+	return extCallStatus, nil
 }
 
 // Handle30009(event)

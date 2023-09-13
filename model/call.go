@@ -41,15 +41,15 @@ type SocketSubscriptionResponse struct {
 
 // (30008) Extension Call Status Changed
 type ExtCallStatus struct {
-	Extension string
-	Status    string
+	Extension string `db:"extention" json:"extention"`
+	Status    string `db:"status" json:"status"`
 }
 
-// type CallStatusChanged struct {
-// 	Type int
-// 	SN   string
-// 	Msg  ExtCallStatus
-// }
+type ExtentionCallStatusChanged struct {
+	Type int           `db:"type" json:"type"`
+	SN   string        `db:"sn" json:"sn"`
+	Msg  ExtCallStatus `db:"msg" json:"msg"`
+}
 
 // (30009) Extension Presence Status Changed
 type ExtentionPresence struct {
