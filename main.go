@@ -166,7 +166,7 @@ func main() {
 				(30008) Extension Call Status Changed	Indicate that the extension call status is changed, and return the current extension call status.
 				(30009) Extension Presence Status Changed	Indicate that the extension presence status is changed, and return the current extension presence status.
 				(30011) Call Status Changed 	Indicate that the call status is changed, and return the current call status.
-				(30012) New CDR	Indicate that a new CDR is generated, and return the call de¬ tails.
+				(30012) New CDR	Indicate that a new CDR is generated, and return the call details.
 				(30013) Call Transfer	Indicate that a call is transferred, and return the call details.
 				(30014) Call Forward	Indicate that a call is forwarded, and return the call details.
 				(30015) Call Failed	Indicate that a call is failed, and return the call details.

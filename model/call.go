@@ -211,6 +211,20 @@ type CDR struct {
 	Msg  CDRCallDetails `db:"msg" json:"msg"`
 }
 
+// Handle30012(event) New CDR Event
+func (c *CDR) Handle(event []byte) error {
+	var CDR = new(CDR)
+	trueResp := Sanitize(event)
+	err := json.Unmarshal(trueResp, &CDR)
+	if err != nil {
+		log.Printf("Cannot unmarshal from event30012: %v\n", err)
+		return err
+	}
+
+	fmt.Printf("CDR report: %v\n", CDR)
+	return nil
+}
+
 // (30013) Call Transfer
 type CallTransferRequest struct {
 	Type            string `db:"type" json:"type"`
