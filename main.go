@@ -101,8 +101,9 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	message := make(chan []byte, 1)
-	done := make(chan struct{})
+	done := make(chan struct{}, 1)
 	go HandleSocketResponse(ctx, done, message, conn)
+
 	// subscribe to the events
 	fmt.Println("subscribing events to websocket service...")
 	err = api.SubscribeToEvents(ctx, conn, api.Topic_list)
@@ -112,6 +113,7 @@ func main() {
 		return
 	}
 	fmt.Println("successfully subscribed to events")
+
 	//  make a test call
 	callReq := &model.CallRequest{
 		Caller:         "700",
@@ -119,6 +121,8 @@ func main() {
 		DialPermission: "2002",
 		AutoAnswer:     "yes",
 	}
+
+	// testing make a call
 	fmt.Println("test call initiated...")
 	callResp, err := api.MakeCall(ctx, client, callReq, validToken)
 	if err != nil {
@@ -127,6 +131,53 @@ func main() {
 	}
 	fmt.Printf("Calling %v resulted in %s\n", callResp.CallID, callResp.Errmsg)
 
+	// get the call recording list
+	// make a call recording list query
+	callListQuery := &model.QueryRecordingListRequest{
+		Page:     1,
+		PageSize: 10,
+		SortBy:   "id",
+		OrderBy:  "asc",
+	}
+	recordingList, err := api.GetRecordingList(ctx, client, callListQuery, validToken)
+	if err != nil {
+		fmt.Println("Cannot get recording list: ", err)
+	}
+	// put the call recording list to a file
+	f, err := os.Create("./data/recording_list.txt")
+	if err != nil {
+		fmt.Println("Cannot create recording list file", err)
+	}
+	defer f.Close()
+	fmt.Println("recording list message received: ", recordingList.Errmsg)
+	fmt.Println("recording list total pages: ", recordingList.TotalNumber)
+	f.WriteString("Call recording list :\n")
+	for _, recording := range recordingList.Data {
+		/*
+			ID       int    `db:"id" json:"id"`
+			Time     string `db:"time" json:"time"`
+			UID      string `db:"uid" json:"uid"`
+			CallFrom string `db:"call_from" json:"call_from"`
+			CallTo   string `db:"call_to" json:"call_to"`
+			Duration int    `db:"duration" json:"duration"`
+			Size     int    `db:"size" json:"size"`
+			CallType string `db:"call_type" json:"call_type"`
+			File     string `db:"file" json:"file"`
+		*/
+		line := fmt.Sprintf(" ID: %d \t Call from: %s\t Call to: %s\t UID: %s\t Duration: %d Size\t: %d Call type: %s\t File: %s\n", recording.ID, recording.CallFrom, recording.CallTo, recording.UID, recording.Duration, recording.Size, recording.CallType, recording.File)
+		f.WriteString(line)
+	}
+	// spew.Dump("Recording list response", recordingList)
+	// download a recording
+	// report := &model.DownloadRecordingRequest{
+	// 	ID:   1696075899,
+	// 	File: "",
+	// }
+	// reportName, err := api.DownloadRecording(ctx, client, report, validToken)
+	// if err != nil {
+	// 	fmt.Printf("Error downloading recording link: %v\n", err)
+	// }
+	// fmt.Printf("Downloading recording link: %v\n", reportName)
 	//
 	// go func() {
 	// 	defer close(done)

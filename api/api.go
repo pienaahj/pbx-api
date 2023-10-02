@@ -9,18 +9,23 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pienaahj/pbx-api/model"
 	"golang.org/x/net/websocket"
 )
 
 const (
-	https_port string = "8088"
+	https_port string = "443"
 	http_port  string = "80"
 	//ip address of the PBX server
-	pbx_ip       string = "105.246.230.190"
+	// pbx_ip       string = "105.246.230.190"
+	// pbx_ip string = "13.245.85.196"
+	pbx_ip       string = "telectrodev.ras.yeastar.com"
 	Api_path     string = "/openapi/v1.0/"
 	Content_type string = "application/json"
-	ServerAddr   string = "105.246.230.190"
+	// ServerAddr   string = "105.246.230.190"
+	ServerAddr string = "telectrodev.ras.yeastar.com"
+	// ServerAddr   string = "13.245.85.196"
 	Persist      string = "heartbeat"
 	SerialNumber string = "3633D2199067"
 )
@@ -108,7 +113,7 @@ func GetToken(ctx context.Context, client *http.Client, creds *model.UserCreds) 
 }
 
 func GetRefreshToken(ctx context.Context, client *http.Client, refreshToken string) (*model.Tokens, error) {
-	url := BaseURLUnsecure + Api_path + "refresh_token"
+	url := BaseURLSecure + Api_path + "refresh_token"
 	fmt.Println("base url used: ", url)
 	tokens := &model.Tokens{}
 	// create the refresh token as a string
@@ -163,7 +168,7 @@ func GetRefreshToken(ctx context.Context, client *http.Client, refreshToken stri
 
 func SubscribeToWebsocketService(ctx context.Context, token string) (*websocket.Conn, error) {
 	serverUrl := BaseURLSecureWebsocket + Api_path + "subscribe?access_token=" + token
-	originUrl := "https://192.168.0.143/"
+	originUrl := "https://192.168.0.144/"
 	fmt.Println("server url: ", serverUrl)
 	originURL, err := url.Parse(originUrl)
 	fmt.Println("origin url: ", originURL)
@@ -270,7 +275,7 @@ func SubscribeToEvents(ctx context.Context, conn *websocket.Conn, events model.E
 
 // MakeCall makes a call on the PBX
 func MakeCall(ctx context.Context, client *http.Client, call *model.CallRequest, token string) (*model.CallResponse, error) {
-	url := BaseURLUnsecure + Api_path + "call/dial?access_token=" + token
+	url := BaseURLSecure + Api_path + "call/dial?access_token=" + token
 	callResponse := &model.CallResponse{}
 
 	callData, err := json.Marshal(call)
@@ -382,27 +387,139 @@ func TransferCall(ctx context.Context, client *http.Client, call *model.CallRequ
 	return callResponse, err
 }
 
+// Get the recording list
+func GetRecordingList(ctx context.Context, client *http.Client, call *model.QueryRecordingListRequest, token string) (*model.QueryRecordingListResponse, error) {
+	fmt.Println("Getting call recording list...")
+	url := BaseURLSecure + Api_path + "recording/list?access_token=" + token
+	// define the response
+	reportResponse := &model.RecordingListResponse{}
+	reportData, err := json.Marshal(call)
+	if err != nil {
+		fmt.Println("Error marshalling the call recording list request: ", err)
+	}
+	fmt.Println("call recording report list request data", string(reportData))
+
+	// create the credentials string as a Reader
+	rdr := bytes.NewBuffer(reportData)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, rdr)
+	if err != nil {
+		fmt.Println("Error creating the call recording report list request: ", err)
+	}
+	// set the content type on the header
+	req.Header.Set("Content-Type", "application/json")
+
+	// spew.Dump("Report list request: ", req.Body)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error recieving call recording report list response: ", err)
+	}
+	defer resp.Body.Close()
+
+	// try to unmarshal it into the response object
+	trueResponse := new(model.QueryRecordingListResponse)
+	// decode to this struct
+	err = json.NewDecoder(resp.Body).Decode(&trueResponse)
+	if err != nil {
+		fmt.Println("Error decoding recording list response: ", err)
+	}
+	/* response format
+	ID       int    `db:"id" json:"id"`
+	Time     string `db:"time" json:"time"`
+	UID      string `db:"uid" json:"uid"`
+	CallFrom string `db:"call_from" json:"call_from"`
+	CallTo   string `db:"call_to" json:"call_to"`
+	Duration int    `db:"duration" json:"duration"`
+	Size     int    `db:"size" json:"size"`
+	CallType string `db:"call_type" json:"call_type"`
+	File     string `db:"file" json:"file"`
+	*/
+
+	if trueResponse.Errcode != 0 {
+		fmt.Printf("Error occured requesting call recording list: %v with message %s\n", err, reportResponse.Errmsg)
+		return &model.QueryRecordingListResponse{}, err
+	}
+	return trueResponse, nil
+}
+
+// Download call recording returns the recording file url
+func DownloadRecording(ctx context.Context, client *http.Client, call *model.DownloadRecordingRequest, token string) (string, error) {
+	fmt.Println("Getting call recording link...")
+	url := BaseURLSecure + Api_path + "recording/download?access_token=" + token
+	reportResponse := &model.DownloadRecordingListResponse{}
+	reportData, err := json.Marshal(call)
+	if err != nil {
+		fmt.Println("Error marshalling the  report list request: ", err)
+	}
+	fmt.Println("report list request data", string(reportData))
+	// create the credentials string as a Reader
+	rdr := bytes.NewBuffer(reportData)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, rdr)
+	if err != nil {
+		fmt.Println("Error creating the report list request: ", err)
+	}
+	// set the content type on the header
+	req.Header.Set("Content-Type", "application/json")
+
+	spew.Dump("Report list request: ", req)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error recieving report list response: ", err)
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&reportResponse)
+	if err != nil {
+		fmt.Println("Error decoding json response body: ", err)
+	}
+	// check the errcode 0: Success otherwise failed
+	if reportResponse.Errcode != 0 {
+		fmt.Printf("Error occured requesting token: %v with message %s\n", err, reportResponse.Errmsg)
+		return "", err
+	}
+	spew.Dump(resp)
+
+	// request the download link
+
+	linkURL := BaseURLSecure + "/" + reportResponse.DownloadResourceURL + "access_token=" + token
+	reqLink, err := http.NewRequestWithContext(ctx, http.MethodGet, linkURL, nil)
+	if err != nil {
+		fmt.Println("Error creating the call recording download request: ", err)
+	}
+	respLink, err := client.Do(reqLink)
+	if err != nil {
+		fmt.Println("Error recieving report link response: ", err)
+	}
+	defer respLink.Body.Close()
+	var link string
+	err = json.NewDecoder(respLink.Body).Decode(&link)
+	if err != nil {
+		fmt.Println("Error decoding json response body: ", err)
+	}
+
+	return link, err
+}
+
 // event repsonses
 // handle event method
 // Handle30008(event) extention call status changed
 func Handle30008(event []byte) {
-	fmt.Println("Handling event30008")
+	fmt.Println("Handling event30008 - extention call status changed")
 }
 
 // Handle30009(event) extention presence status changed
 func Handle30009(event []byte) {
-	fmt.Println("Handling event30009")
+	fmt.Println("Handling event30009 - extention presence status changed")
 }
 
 // Handle30011(event) call status changed
 func Handle30011(event []byte) {
-	fmt.Println("Handling event30011")
+	fmt.Println("Handling event30011 - call status changed")
 
 }
 
 // Handle30012(event) new CDR
 func Handle30012(event []byte) {
-	fmt.Println("Handling event30012")
+	fmt.Println("Handling event30012 - new CDR")
 	var newCDR = new(model.CDR)
 	err := newCDR.Handle(event)
 	if err != nil {
@@ -414,22 +531,22 @@ func Handle30012(event []byte) {
 
 // Handle30013(event) call transfer
 func Handle30013(event []byte) {
-	fmt.Println("Handling event30013")
+	fmt.Println("Handling event30013 - call transfer")
 }
 
 // Handle30014(event) call forward
 func Handle30014(event []byte) {
-	fmt.Println("Handling event30014")
+	fmt.Println("Handling event30014 - call forward")
 }
 
-// Handle30014(event) call forward
+// Handle30015(event) Call Failed
 func Handle30015(event []byte) {
-	fmt.Println("Handling event30015")
+	fmt.Println("Handling event30015 - Call Failed")
 }
 
 // Handle30016(event) inbound call invitation
 func Handle30016(event []byte) {
-	fmt.Println("Handling event30016")
+	fmt.Println("Handling event30016 - inbound call invitation")
 }
 
 // HandleNotImplemented(event)

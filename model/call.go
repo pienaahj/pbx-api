@@ -451,7 +451,63 @@ type InboundCallInvitation struct {
 	Msg  InboundCallInvitationCallInfo `db:"msg" json:"msg"`
 }
 
-// sanitize() takes the quotes out of a event response
+// download request
+type DownloadRecordingRequest struct {
+	ID   int    `db:"id" json:"id"`
+	File string `db:"file" json:"file"`
+}
+
+// download list response
+type DownloadRecordingListResponse struct {
+	Errcode             int    `db:"errcode" json:"errcode"`
+	Errmsg              string `db:"errmsg" json:"errmsg"`
+	File                string `db:"file" json:"file"`
+	DownloadResourceURL string `db:"download_resource_url" json:"download_resource_url"`
+}
+
+// Query Recording List
+type QueryRecordingListRequest struct {
+	Page     int    `db:"page" json:"page"`
+	PageSize int    `db:"page_size" json:"page_size"`
+	SortBy   string `db:"sort_by" json:"sort_by"`
+	OrderBy  string `db:"order_by" json:"order_by"`
+}
+
+type QueryRecordingListResponse struct { // for later brakedown
+	Errcode     int               `db:"errcode" json:"errcode"`
+	Errmsg      string            `db:"errmsg" json:"errmsg"`
+	TotalNumber int               `db:"total_number" json:"total_number"`
+	Data        []RecordingDetail `db:"data" json:"data"`
+}
+type RecordingDetail struct { // for later brakedown
+	ID       int    `db:"id" json:"id"`
+	Time     string `db:"time" json:"time"`
+	UID      string `db:"uid" json:"uid"`
+	CallFrom string `db:"call_from" json:"call_from"`
+	CallTo   string `db:"call_to" json:"call_to"`
+	Duration int    `db:"duration" json:"duration"`
+	Size     int    `db:"size" json:"size"`
+	CallType string `db:"call_type" json:"call_type"`
+	File     string `db:"file" json:"file"`
+}
+type RecordingListResponse struct { // for decoding
+	Errcode     int    `db:"errcode" json:"errcode"`           // Returned error code.0: Succeed. Non-zero value: Failed.
+	Errmsg      string `db:"errmsg" json:"errmsg"`             // Returned message. SUCCESS: Succeed. FAILURE: Failed.
+	TotalNumber int    `db:"total_number" json:"total_number"` // The total number of call recording.
+	Data        []struct {
+		ID       int    `db:"id" json:"id"`               // The unique ID of the call recording.
+		Time     string `db:"time" json:"time"`           // The time the call was made or received.
+		UID      string `db:"uid" json:"uid"`             // The unique ID of the CDR for which the recording is proceeded.
+		CallFrom string `db:"call_from" json:"call_from"` // Caller.
+		CallTo   string `db:"call_to" json:"call_to"`     // Callee.
+		Duration int    `db:"duration" json:"duration"`   // Call duration.
+		Size     int    `db:"size" json:"size"`           // The size of the call recording file. (Unit: Byte)
+		CallType string `db:"call_type" json:"call_type"` // Communication type. Inbound Outbound Internal
+		File     string `db:"file" json:"file"`           // The name of the call recording file.
+	} `db:"data" json:"data"`
+}
+
+// Sanitize takes the quotes out of a event response
 func Sanitize(event []byte) []byte {
 	// "msg":"
 	beginBefore := []byte(`"msg":"`)
