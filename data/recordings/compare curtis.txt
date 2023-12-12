@@ -1,0 +1,36 @@
+Preparing at 14:29:09.957
+Connecting at 14:29:09.957
+Connection string: -ssl -nohostverify -H telectrodev.ras.yeastar.com -S 443
+Connected at 14:29:11.981
+ 
+Requested the following at 14:29:11.981:
+POST /openapi/v1.0/get_token HTTP/1.1
+Accept: */*;q=0.001
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept-Encoding: identity
+Cache-Control: max-age=0
+Connection: keep-alive
+Content-Length: 93
+Content-Type: application/x-www-form-urlencoded
+Host: telectrodev.ras.yeastar.com
+Pragma: no-cache
+User-Agent: miphttp
+ 
+{"username":"[removed]","password":"[removed]"}
+ 
+Start of Response--->
+HTTP/1.1 200 OK
+Server: openresty
+Date: Wed, 06 Dec 2023 12:29:12 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 42
+Connection: keep-alive
+Content-Security-Policy: frame-ancestors teams.microsoft.com *.teams.microsoft.com *.skype.com
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Authorization, Content-Type
+ 
+{"errcode":70087,"errmsg":"IP FORBIDDEN"}
+<---End of Response at 14:29:12.320, Content-Length: 42, Bytes-Read: 395
+ 
+Stats of bytes received over time:
+14:29:12.320: 395

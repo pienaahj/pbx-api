@@ -51,7 +51,13 @@ func main() {
 		DisableCompression: true,
 	}
 	// get the client
-	client := &http.Client{Transport: tr}
+	client := &http.Client{
+		Transport: tr,
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
 
 	userCreds := &model.UserCreds{
 		Username: clientId,
@@ -115,69 +121,77 @@ func main() {
 	fmt.Println("successfully subscribed to events")
 
 	//  make a test call
-	callReq := &model.CallRequest{
-		Caller:         "700",
-		Callee:         "0824514478",
-		DialPermission: "2002",
-		AutoAnswer:     "yes",
-	}
+	// callReq := &model.CallRequest{
+	// 	Caller:         "700",
+	// 	Callee:         "701",
+	// 	DialPermission: "700",
+	// 	AutoAnswer:     "no",
+	// }
+	// create a return channel
+	returnedCallID := make(chan string, 2)
 
 	// testing make a call
-	fmt.Println("test call initiated...")
-	callResp, err := api.MakeCall(ctx, client, callReq, validToken)
-	if err != nil {
-		fmt.Printf("Error calling %s: %v\n", callReq.Callee, err)
-		return
-	}
-	fmt.Printf("Calling %v resulted in %s\n", callResp.CallID, callResp.Errmsg)
+	fmt.Println("****************************************************************")
+	fmt.Println("Waiting for incoming events...")
+	// service the call id and get the calling number
+
+	// fmt.Println("test call initiated...")
+	// callResp, err := api.MakeCall(ctx, client, callReq, validToken)
+	// if err != nil {
+	// 	fmt.Printf("Error calling %s: %v\n", callReq.Callee, err)
+	// 	return
+	// }
+	// fmt.Printf("Calling %v resulted in %s\n", callResp.CallID, callResp.Errmsg)
 
 	// get the call recording list
 	// make a call recording list query
-	callListQuery := &model.QueryRecordingListRequest{
-		Page:     1,
-		PageSize: 10,
-		SortBy:   "id",
-		OrderBy:  "asc",
-	}
-	recordingList, err := api.GetRecordingList(ctx, client, callListQuery, validToken)
-	if err != nil {
-		fmt.Println("Cannot get recording list: ", err)
-	}
-	// put the call recording list to a file
-	f, err := os.Create("./data/recording_list.txt")
-	if err != nil {
-		fmt.Println("Cannot create recording list file", err)
-	}
-	defer f.Close()
-	fmt.Println("recording list message received: ", recordingList.Errmsg)
-	fmt.Println("recording list total pages: ", recordingList.TotalNumber)
-	f.WriteString("Call recording list :\n")
-	for _, recording := range recordingList.Data {
-		/*
-			ID       int    `db:"id" json:"id"`
-			Time     string `db:"time" json:"time"`
-			UID      string `db:"uid" json:"uid"`
-			CallFrom string `db:"call_from" json:"call_from"`
-			CallTo   string `db:"call_to" json:"call_to"`
-			Duration int    `db:"duration" json:"duration"`
-			Size     int    `db:"size" json:"size"`
-			CallType string `db:"call_type" json:"call_type"`
-			File     string `db:"file" json:"file"`
-		*/
-		line := fmt.Sprintf(" ID: %d \t Call from: %s\t Call to: %s\t UID: %s\t Duration: %d Size\t: %d Call type: %s\t File: %s\n", recording.ID, recording.CallFrom, recording.CallTo, recording.UID, recording.Duration, recording.Size, recording.CallType, recording.File)
-		f.WriteString(line)
-	}
+	// callListQuery := &model.QueryRecordingListRequest{
+	// 	Page:     1,
+	// 	PageSize: 10,
+	// 	SortBy:   "id",
+	// 	OrderBy:  "asc",
+	// }
+	// recordingList, err := api.GetRecordingList(ctx, client, callListQuery, validToken)
+	// if err != nil {
+	// 	fmt.Println("Cannot get recording list: ", err)
+	// }
+	// // put the call recording list to a file
+	// f, err := os.Create("./data/recording_list.txt")
+	// if err != nil {
+	// 	fmt.Println("Cannot create recording list file", err)
+	// }
+	// defer f.Close()
+	// fmt.Println("recording list message received: ", recordingList.Errmsg)
+	// fmt.Println("recording list total pages: ", recordingList.TotalNumber)
+	// f.WriteString("Call recording list :\n")
+	// for _, recording := range recordingList.Data {
+	// 	/*
+	// 		ID       int    `db:"id" json:"id"`
+	// 		Time     string `db:"time" json:"time"`
+	// 		UID      string `db:"uid" json:"uid"`
+	// 		CallFrom string `db:"call_from" json:"call_from"`
+	// 		CallTo   string `db:"call_to" json:"call_to"`
+	// 		Duration int    `db:"duration" json:"duration"`
+	// 		Size     int    `db:"size" json:"size"`
+	// 		CallType string `db:"call_type" json:"call_type"`
+	// 		File     string `db:"file" json:"file"`
+	// 	*/
+	// 	line := fmt.Sprintf(" ID: %d \t Call from: %s\t Call to: %s\t UID: %s\t Duration: %d Size\t: %d Call type: %s\t File: %s\n", recording.ID, recording.CallFrom, recording.CallTo, recording.UID, recording.Duration, recording.Size, recording.CallType, recording.File)
+	// 	f.WriteString(line)
+	// }
 	// spew.Dump("Recording list response", recordingList)
 	// download a recording
 	// report := &model.DownloadRecordingRequest{
-	// 	ID:   1696075899,
-	// 	File: "",
+	// 	ID: 9743,
+	// 	// File: "20231002112822-1696238888.81-700-0824514478-Outbound.wav",
 	// }
-	// reportName, err := api.DownloadRecording(ctx, client, report, validToken)
+	// err = api.DownloadRecording(ctx, client, report, validToken)
 	// if err != nil {
 	// 	fmt.Printf("Error downloading recording link: %v\n", err)
+	// } else {
+	// 	fmt.Println("Successfully downloaded recording wav file")
 	// }
-	// fmt.Printf("Downloading recording link: %v\n", reportName)
+
 	//
 	// go func() {
 	// 	defer close(done)
@@ -194,6 +208,14 @@ func main() {
 		select {
 		case <-done:
 			return
+		case callID := <-returnedCallID: // this now cannot run concurrently
+			fmt.Println("received call id on channel")
+			// fmt.Println("received the channel for caller id in main:", returnedCallID)
+			callerID, err := api.ServiceCallID(ctx, client, callID, validToken)
+			if err != nil {
+				spew.Dump("error servicing channel call ID: %v", err)
+			}
+			fmt.Println("received call id: ", callerID)
 		case msg := <-message:
 			// determine the event type
 			var event struct {
@@ -227,19 +249,29 @@ func main() {
 			case 30008:
 				go api.Handle30008(eventX)
 			case 30009:
-				api.Handle30009(eventX)
+				go api.Handle30009(eventX)
 			case 30011:
 				go api.Handle30011(eventX)
 			case 30012:
 				go api.Handle30012(eventX)
 			case 30013:
-				api.Handle30013(eventX)
+				go api.Handle30013(eventX)
 			case 30014:
-				api.Handle30014(eventX)
+				go api.Handle30014(eventX)
 			case 30015:
 				go api.Handle30015(eventX)
 			case 30016:
-				api.Handle30016(eventX)
+				// make a caller id channel
+				// ch := make(chan string)
+				chString, err := api.Handle30016(eventX)
+				if err != nil {
+					fmt.Println("Failed to handle event 30016")
+				}
+				fmt.Println("event 30016 handled with callid in handler ", chString)
+				fmt.Println("passing caller id to channel")
+				// pass the caller id ont the channel to extract the caller
+				returnedCallID <- chString
+
 			case 30005:
 				api.HandleNotImplemented(eventX)
 			case 30006:

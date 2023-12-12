@@ -1,0 +1,59 @@
+base url used:  https://telectrodev.ras.yeastar.com:443/openapi/v1.0/get_token
+(*http.Request)(0xc000100000)({
+ Method: (string) (len=4) "POST",
+ URL: (*url.URL)(0xc0000fe120)(https://telectrodev.ras.yeastar.com:443/openapi/v1.0/get_token),
+ Proto: (string) (len=8) "HTTP/1.1",
+ ProtoMajor: (int) 1,
+ ProtoMinor: (int) 1,
+ Header: (http.Header) (len=1) {
+  (string) (len=12) "Content-Type": ([]string) (len=1 cap=1) {
+   (string) (len=16) "application/json"
+  }
+ },
+ Body: (io.nopCloserWriterTo) {
+  Reader: (*bytes.Buffer)(0xc00009cea0)({"username":"JZQulsaolLgZfLLD8SDztJwFn5jlAXWM","password":"ESziOACmxqsHb1SuXcbsBj36rfVdLUU7"})
+ },
+ GetBody: (func() (io.ReadCloser, error)) 0x121e4a0,
+ ContentLength: (int64) 93,
+ TransferEncoding: ([]string) <nil>,
+ Close: (bool) false,
+ Host: (string) (len=31) "telectrodev.ras.yeastar.com:443",
+ Form: (url.Values) <nil>,
+ PostForm: (url.Values) <nil>,
+ MultipartForm: (*multipart.Form)(<nil>),
+ Trailer: (http.Header) <nil>,
+ RemoteAddr: (string) "",
+ RequestURI: (string) "",
+ TLS: (*tls.ConnectionState)(<nil>),
+ Cancel: (<-chan struct {}) <nil>,
+ Response: (*http.Response)(<nil>),
+ ctx: (context.backgroundCtx) context.Background
+})
+(string) (len=8) "response"
+(http.Header) (len=8) {
+ (string) (len=10) "Connection": ([]string) (len=1 cap=1) {
+  (string) (len=10) "keep-alive"
+ },
+ (string) (len=23) "Content-Security-Policy": ([]string) (len=1 cap=1) {
+  (string) (len=69) "frame-ancestors teams.microsoft.com *.teams.microsoft.com *.skype.com"
+ },
+ (string) (len=27) "Access-Control-Allow-Origin": ([]string) (len=1 cap=1) {
+  (string) (len=1) "*"
+ },
+ (string) (len=28) "Access-Control-Allow-Headers": ([]string) (len=1 cap=1) {
+  (string) (len=27) "Authorization, Content-Type"
+ },
+ (string) (len=6) "Server": ([]string) (len=1 cap=1) {
+  (string) (len=9) "openresty"
+ },
+ (string) (len=4) "Date": ([]string) (len=1 cap=1) {
+  (string) (len=29) "Thu, 07 Dec 2023 10:02:29 GMT"
+ },
+ (string) (len=12) "Content-Type": ([]string) (len=1 cap=1) {
+  (string) (len=31) "application/json; charset=utf-8"
+ },
+ (string) (len=14) "Content-Length": ([]string) (len=1 cap=1) {
+  (string) (len=3) "200"
+ }
+}
+Token expiration time:  1800
